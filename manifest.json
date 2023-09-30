@@ -1,0 +1,11 @@
+{
+    "manifest_version": 3,
+    "name": "ChatGPT Markdown Copier",
+    "version": "1.0",
+    "description": "Copy ChatGPT answers as markdown",
+    "permissions": ["activeTab"],
+    "content_scripts": [{
+      "matches": ["https://chat.openai.com/*"],
+      "js": ["contentScript.js"]
+    }]
+  }
