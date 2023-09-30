@@ -12,26 +12,42 @@ function copyToClipboard(txt) {
     });
 }
 
+function processNode(node) {
+    console.log('Processing Node:', node.nodeName, ' - Content:', node.outerHTML);
+
+    if (node.nodeName === 'P') {
+        return node.innerText + '\n';
+    } else if (node.nodeName === 'STRONG') {
+        return node.innerText + '：';
+    } else if (node.nodeName === '#text') {
+        return node.nodeValue;
+    } else if (node.nodeName === 'UL' || node.nodeName === 'OL') {
+        return processListItems(node, node.nodeName === 'OL') + '\n';
+    } else { // 对于除上述之外的所有节点
+        return node.innerText + '\n';
+    }
+    return '';
+}
+
 function processListItems(list, isOrdered = true) {
+    console.log('Processing List:', list.nodeName, ' - Content:', list.outerHTML);
     let result = '';
     let index = 1;
-    list.querySelectorAll(':scope > li').forEach(li => {
-        if (isOrdered) {
-            result += index + '. ' + li.innerText.split('\n')[0].trim() + '\n';
-            index++;
-        } else {
-            result += '· ' + li.innerText.split('\n')[0].trim() + '\n';
-        }
 
-        // Handle nested lists
-        const nestedUl = li.querySelector('ul');
-        const nestedOl = li.querySelector('ol');
-        if (nestedUl) {
-            result += processListItems(nestedUl, false);
-        } else if (nestedOl) {
-            result += processListItems(nestedOl, true);
-        }
+    list.querySelectorAll(':scope > li').forEach(li => {
+        let liContent = Array.from(li.childNodes).map(child => {
+            if (child.nodeName === 'UL' || child.nodeName === 'OL') {
+                return processListItems(child, child.nodeName === 'OL');
+            } else {
+                return processNode(child);
+            }
+        }).join('');
+
+        result += isOrdered ? (index + '. ') : '· ';
+        result += liContent.trim() + '\n';
+        index++;
     });
+
     return result;
 }
 
@@ -39,25 +55,8 @@ function processAndReturnText(inputHTML) {
     const doc = new DOMParser().parseFromString(inputHTML, 'text/html');
     let newText = '';
 
-    // 处理p标签
-    doc.querySelectorAll('p').forEach(p => {
-        if (!p.closest('li')) {
-            newText += p.innerText + '\n';
-        }
-    });
-
-    // 处理ol标签
-    doc.querySelectorAll('ol').forEach(ol => {
-        if (!ol.closest('li')) {
-            newText += processListItems(ol, true);
-        }
-    });
-
-    // 处理ul标签
-    doc.querySelectorAll('ul').forEach(ul => {
-        if (!ul.closest('li')) {
-            newText += processListItems(ul, false);
-        }
+    doc.body.childNodes.forEach(node => {
+        newText += processNode(node);
     });
 
     return newText.trim();
@@ -109,8 +108,7 @@ function createCopyButton() {
             console.log("rawHTML");
             console.log(rawHTML);
             const processedText = processAndReturnText(rawHTML);
-            console.log("processedText");
-            console.log(processedText);
+            console.log("Processed Text:", processedText);
             //console.log(processedHTML);
             //console.log("innerText");
             //console.log(processedHTML.innerText);
